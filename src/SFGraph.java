@@ -60,13 +60,21 @@ public class SFGraph {
   public static void dijkstra(int start, int end, List<Edge> edges, List<Node> nodes) {
     int n = nodes.size();
     Vertex[] vertices = new Vertex[n];
+    // store distance for vertices and end of every edge to easily query later
+    HashMap<String, Float> distances = new HashMap<>();
+
     for (int i=0; i<n; i++) {
       vertices[i] = new Vertex(i);
     }
     for (Edge e : edges) {
       vertices[e.startNodeId].add(e);
       vertices[e.endNodeId].add(e);
+      String ed = e.startNodeId+" "+e.endNodeId;
+      String rev = e.endNodeId+" "+e.startNodeId;
+      distances.put(ed,e.l2Distance);
+      distances.put(rev,e.l2Distance);
     }
+
     PriorityQueue<Vertex> q = new PriorityQueue<>();
     vertices[start].distance = 0;
     q.add(vertices[start]);
@@ -110,6 +118,11 @@ public class SFGraph {
         path += curr;
       else
         path = curr + ", " + path;
+      //if prev isn't null find the distance btw vertices
+      if (b.prev != null) {
+        String key = b.name+" "+b.prev.name;
+        distance += distances.get(key);
+      }
       b = b.prev;
       ct++;
     }
@@ -117,6 +130,7 @@ public class SFGraph {
       System.out.println("There is no path between "+start+" and "+end);
     else
       System.out.println(path);
+      System.out.println("Distance: "+distance);
   }
 
   public static void fillDBEdges() {
@@ -157,6 +171,14 @@ public class SFGraph {
         int NodeID = Integer.parseInt(data[0]);
         float Latitude = Float.parseFloat(data[1]);
         float Longitude = Float.parseFloat(data[2]);
+        /*Inserting for each record takes a long time
+         *since this database has 20K+ edges
+         *As a result, database isn't completely full
+         *Display the nodes and edges by creating a
+         *Database object and calling db.selectAllNodes()
+         *and selectAllEdges()
+         *This database currently has nodes 0-2287 and edges 0-273
+         */
         db.insertNode(NodeID, Latitude, Longitude);
       }
     }
@@ -168,7 +190,7 @@ public class SFGraph {
   public static ArrayList<Edge> loadEdges(){
     String sql = "SELECT EdgeId, StartNodeId, EndNodeId, L2Distance FROM edges";
     String url = "jdbc:sqlite:C:/Users/Edward/Desktop/HGP_Repositories" +
-            "/Ed_Ellis_HW2/src/RoadNetwork.db";
+            "/Ed_Ellis_HW3/src/RoadNetwork.db";
     ArrayList<Edge> edges = new ArrayList<Edge>();
     try (Connection conn = DriverManager.getConnection(url);
          Statement stmt  = conn.createStatement();
@@ -192,7 +214,7 @@ public class SFGraph {
   public static ArrayList<Node> loadNodes(){
     String sql = "SELECT NodeID, Latitude, Longitude FROM nodes";
     String url = "jdbc:sqlite:C:/Users/Edward/Desktop/HGP_Repositories" +
-            "/Ed_Ellis_HW2/src/RoadNetwork.db";
+            "/Ed_Ellis_HW3/src/RoadNetwork.db";
     ArrayList<Node> nodes = new ArrayList<>();
     try (Connection conn = DriverManager.getConnection(url);
          Statement stmt  = conn.createStatement();
@@ -215,7 +237,7 @@ public class SFGraph {
   public static void loadDB() {
     ArrayList<Edge> eds = loadEdges();
     ArrayList<Node> nds = loadNodes();
-    dijkstra(1,7,eds,nds);
+    dijkstra(10,81,eds,nds);
   }
 
   public static void main(String[] args) {
